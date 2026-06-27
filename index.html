@@ -73,7 +73,7 @@
     display: none;
     align-items: center;
     padding: 2px 0 2px 4px;
-    z-index: 9999;
+    z-index: 99999;
     gap: 2px;
   }
 
@@ -95,6 +95,7 @@
     font-size: 13px;
     font-weight: bold;
     flex-shrink: 0;
+    z-index: 100000;
   }
 
   #start-btn:active, #start-btn.clicked {
@@ -129,7 +130,7 @@
     border: 2px solid;
     border-color: #ffffff #808080 #808080 #ffffff;
     display: none;
-    z-index: 10000;
+    z-index: 100001;
     font-family: 'CustomFont', Arial, sans-serif;
     padding: 2px;
   }
@@ -197,7 +198,7 @@
     padding: 2px;
     display: none;
     min-width: 150px;
-    z-index: 10001;
+    z-index: 100002;
     font-family: 'CustomFont', Arial, sans-serif;
   }
 
@@ -217,7 +218,7 @@
     min-width: 350px;
     max-width: 400px;
     font-family: 'CustomFont', Arial, sans-serif;
-    z-index: 99999;
+    z-index: 99990;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -344,7 +345,7 @@
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 99998;
+    z-index: 100003;
   }
 
   .shutdown-overlay.visible {
@@ -498,7 +499,7 @@
     background-size: cover;
     background-position: center;
     display: none;
-    z-index: 999999;
+    z-index: 100004;
   }
 
   #shutdown-screen.visible {
@@ -523,6 +524,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    z-index: 100000;
   }
 
   .taskbar-btn.active {
@@ -550,7 +552,6 @@
     background: #c0c0c0;
     border: 2px solid;
     border-color: #808080 #ffffff #ffffff #808080;
-    z-index: 99999;
   }
 
   .resize-handle::after {
@@ -577,6 +578,7 @@
     box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
+    z-index: 99990;
   }
 </style>
 
@@ -624,7 +626,7 @@
     </div>
     <div id="taskbar-buttons" style="display:flex;gap:2px;flex:1;overflow:hidden;"></div>
     <div class="taskbar-spacer"></div>
-    <div id="clock" style="padding:0 12px;font-size:12px;font-family:'CustomFont',Arial,sans-serif;color:#000;border-left:2px solid #808080;height:22px;display:flex;align-items:center;"></div>
+    <div id="clock" style="padding:0 12px;font-size:12px;font-family:'CustomFont',Arial,sans-serif;color:#000;border-left:2px solid #808080;height:22px;display:flex;align-items:center;z-index:100000;"></div>
   </div>
 
   <div class="shutdown-overlay" id="shutdown-overlay">
@@ -774,11 +776,14 @@
     
     const offset = (windowCount - 1) * 30
     popup.style.transform = `translate(calc(-50% + ${offset}px), calc(-50% + ${offset}px))`
+    popup.style.zIndex = 99990 + windowCount
     
     popup.innerHTML = `
       <div class="popup-titlebar">
         <span>Finding</span>
-        <div class="popup-close">✕</div>
+        <div class="popup-titlebar-buttons">
+          <div class="popup-titlebar-btn close">✕</div>
+        </div>
       </div>
       <div class="popup-body">
         <img src="msgError.png" alt="Error" />
@@ -791,7 +796,7 @@
     
     document.getElementById('boot').appendChild(popup)
     
-    const closeBtn = popup.querySelector('.popup-close')
+    const closeBtn = popup.querySelector('.popup-titlebar-btn.close')
     const okBtn = popup.querySelector('.popup-btn')
     
     function closePopup() {
@@ -818,13 +823,12 @@
 
     vpcCounter++
     const windowId = 'vpc-' + vpcCounter
-    const zIndex = 99990 + vpcCounter
+    const zIndex = 99990 + vpcCounter + 100
 
     // Calculate position - cascade windows
-    const baseOffset = 30
     const index = vpcWindows.length
-    const offsetX = (index * baseOffset) % 200
-    const offsetY = Math.floor(index * baseOffset / 200) * baseOffset + 50
+    const offsetX = (index * 30) % 200
+    const offsetY = Math.floor(index * 30 / 200) * 30 + 50
 
     const win = document.createElement('div')
     win.className = 'vpc-window'
@@ -983,11 +987,9 @@
   }
 
   function setActiveWindow(windowId) {
-    // Remove active from all taskbar buttons
     vpcWindows.forEach(w => {
       w.taskbarBtn.classList.remove('active')
     })
-    // Set active on the selected window
     const data = vpcWindows.find(w => w.id === windowId)
     if (data && !data.minimized) {
       data.taskbarBtn.classList.add('active')
@@ -1024,7 +1026,6 @@
       data.taskbarBtn.classList.remove('active')
       if (activeWindowId === windowId) {
         activeWindowId = null
-        // Find another window to activate
         const visibleWindow = vpcWindows.find(w => !w.minimized)
         if (visibleWindow) {
           setActiveWindow(visibleWindow.id)
@@ -1134,4 +1135,4 @@
       e.stopPropagation()
     })
   })
-</script>
+  </script>
