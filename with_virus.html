@@ -1,0 +1,996 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Windows 97</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<link rel="icon" type="image/x-icon" href="logo.ico" />
+<style>
+  @font-face {
+    font-family: 'CustomFont';
+    src: url('font.ttf') format('truetype');
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  html, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'CustomFont', Arial, sans-serif;
+  }
+
+  #boot {
+    background-color: #000;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: background-image 0.5s;
+  }
+
+  #boot.booted {
+    background-image: url('wallpaper.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  #loader {
+    position: absolute;
+    height: 15px;
+    top: calc(50% + 100px);
+    left: 0;
+    right: 0;
+    background-image: url('loadingBar.gif');
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  #canvas {
+    margin: auto;
+    position: absolute;
+    height: 230px;
+    width: 230px;
+    top: calc(50% - 150px);
+    left: 1%;
+    right: 1%;
+  }
+
+  #taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    display: none;
+    align-items: center;
+    padding: 2px 0 2px 4px;
+    z-index: 9999;
+  }
+
+  #taskbar.visible {
+    display: flex;
+  }
+
+  #start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 12px 2px 6px;
+    height: 26px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  #start-btn:active, #start-btn.clicked {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  #start-btn img {
+    width: 20px;
+    height: 20px;
+  }
+
+  #boot-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 2;
+  }
+
+  #boot-screen.hidden {
+    display: none;
+  }
+
+  #start-menu {
+    position: absolute;
+    bottom: 34px;
+    left: 4px;
+    width: 180px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: none;
+    z-index: 10000;
+    font-family: 'CustomFont', Arial, sans-serif;
+    padding: 2px;
+  }
+
+  #start-menu.visible {
+    display: block;
+  }
+
+  .menu-left {
+    background: #ff6600;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .menu-left span {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+  }
+
+  .menu-items {
+    padding: 2px 0;
+  }
+
+  .menu-item {
+    padding: 4px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #000;
+  }
+
+  .menu-item:hover {
+    background: #ff8c00;
+    color: #000;
+  }
+
+  .menu-item img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .menu-divider {
+    height: 2px;
+    background: #808080;
+    margin: 2px 8px;
+    border-bottom: 1px solid #ffffff;
+  }
+
+  /* Popup Window */
+  .popup-window {
+    position: absolute;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 350px;
+    max-width: 400px;
+    font-family: 'CustomFont', Arial, sans-serif;
+    z-index: 99999;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .popup-window:nth-child(2) {
+    transform: translate(calc(-50% + 30px), calc(-50% + 30px));
+  }
+
+  .popup-window:nth-child(3) {
+    transform: translate(calc(-50% + 60px), calc(-50% + 60px));
+  }
+
+  .popup-window:nth-child(4) {
+    transform: translate(calc(-50% + 90px), calc(-50% + 90px));
+  }
+
+  .popup-titlebar {
+    background: linear-gradient(to right, #ff6600, #0088ff);
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default;
+  }
+
+  .popup-titlebar span {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+  }
+
+  .popup-close {
+    width: 18px;
+    height: 18px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .popup-close:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .popup-body {
+    padding: 16px 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .popup-body img {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+  }
+
+  .popup-body p {
+    font-size: 13px;
+    color: #000;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .popup-footer {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #808080;
+  }
+
+  .popup-btn {
+    padding: 4px 24px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    color: #000;
+    min-width: 60px;
+  }
+
+  .popup-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* Shutdown popup specific */
+  .shutdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99998;
+  }
+
+  .shutdown-overlay.visible {
+    display: flex;
+  }
+
+  .shutdown-window {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 320px;
+    font-family: 'CustomFont', Arial, sans-serif;
+  }
+
+  .shutdown-titlebar {
+    background: linear-gradient(to right, #ff6600, #0088ff);
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default;
+  }
+
+  .shutdown-titlebar span {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+  }
+
+  .shutdown-close {
+    width: 18px;
+    height: 18px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .shutdown-close:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .shutdown-body {
+    padding: 20px 24px;
+  }
+
+  .shutdown-body img {
+    display: block;
+    margin: 0 auto 12px auto;
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+  }
+
+  .shutdown-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .shutdown-option input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .shutdown-option input[type="radio"]:checked {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .shutdown-option input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 6px;
+    height: 6px;
+    background: #000;
+    border-radius: 50%;
+  }
+
+  .shutdown-option input[type="radio"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .shutdown-option label {
+    font-size: 13px;
+    color: #000;
+    cursor: pointer;
+  }
+
+  .shutdown-option input[type="radio"]:disabled + label {
+    color: #666;
+    cursor: not-allowed;
+  }
+
+  .shutdown-footer {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #808080;
+  }
+
+  .shutdown-btn {
+    padding: 4px 24px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    color: #000;
+    min-width: 60px;
+  }
+
+  .shutdown-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* Shutdown screen */
+  #shutdown-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    background-image: url('shutdown_screen.png');
+    background-size: cover;
+    background-position: center;
+    display: none;
+    z-index: 999999;
+  }
+
+  #shutdown-screen.visible {
+    display: block;
+  }
+</style>
+
+<div id="boot">
+  <div id="boot-screen">
+    <canvas id="canvas" width="230" height="230"></canvas>
+    <div id="loader"></div>
+  </div>
+
+  <div id="taskbar">
+    <div id="start-btn">
+      <img src="pixel_logo.png" alt="Start" />
+      Start
+    </div>
+    <div id="start-menu">
+      <div class="menu-left">
+        <span>Windows 97</span>
+      </div>
+      <div class="menu-items">
+        <div class="menu-item">
+          <img src="programsStartMenu.png" alt="Programs" />
+          Programs
+        </div>
+        <div class="menu-item">
+          <img src="help.png" alt="Help" />
+          Help
+        </div>
+        <div class="menu-item" id="find-item">
+          <img src="find.png" alt="Find" />
+          Find
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" id="shutdown-item">
+          <img src="shutdown.png" alt="Shut down" />
+          Shut down...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shutdown Popup -->
+  <div class="shutdown-overlay" id="shutdown-overlay">
+    <div class="shutdown-window">
+      <div class="shutdown-titlebar">
+        <span>Power Options</span>
+        <div class="shutdown-close" id="shutdown-close">✕</div>
+      </div>
+      <div class="shutdown-body">
+        <img src="shutdown.png" alt="Shutdown" />
+        <div class="shutdown-option">
+          <input type="radio" name="power" id="restart-opt" value="restart" checked />
+          <label for="restart-opt">Restart</label>
+        </div>
+        <div class="shutdown-option">
+          <input type="radio" name="power" id="standby-opt" value="standby" disabled />
+          <label for="standby-opt">Standby</label>
+        </div>
+      </div>
+      <div class="shutdown-footer">
+        <button class="shutdown-btn" id="shutdown-ok">OK</button>
+        <button class="shutdown-btn" id="shutdown-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shutdown Screen -->
+  <div id="shutdown-screen"></div>
+</div>
+
+<script>
+  const img = new Image()
+  const cnv = document.querySelector("#canvas")
+  const ctx = cnv.getContext("2d")
+  const fx = [
+    { value: 0, amp: 10, inc: 0.01, offset: 0 },
+    { value: 0, amp: 10, inc: 0, offset: 0 },
+  ]
+  img.onload = go
+  img.src = "logo.png"
+
+  function siny(posx, posy) {
+    const oldvalue = []
+    let i, j
+    const l = fx.length
+    const w = img.width
+    let prov = 0
+    for (j = 0; j < l; j++) oldvalue[j] = fx[j].value
+    for (i = 0; i < w; i++) {
+      prov = 0
+      for (j = 0; j < l; j++) prov += Math.sin(fx[j].value) * fx[j].amp
+      ctx.translate(i + posx, prov + posy)
+      ctx.drawImage(img, i, 0, 1, img.height, 0, 0, 1, img.height)
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      for (j = 0; j < l; j++) fx[j].value += fx[j].inc
+    }
+    for (j = 0; j < l; j++) fx[j].value = oldvalue[j] + fx[j].offset
+  }
+
+  function go() {
+    if (fx[1].inc < 1) fx[1].inc += 0.001
+    if (fx[0].amp < 10) {
+      fx[0].amp += 0.1
+      fx[1].amp += 0.1
+    }
+    if (fx[0].offset > -0.05) {
+      fx[0].offset -= 0.01
+      fx[1].offset += 0.01
+    }
+    ctx.fillStyle = "#000"
+    ctx.fillRect(0, 0, cnv.width, cnv.height)
+    siny(0, 20)
+    requestAnimationFrame(go)
+  }
+
+  setTimeout(() => {
+    document.getElementById('boot-screen').classList.add('hidden')
+    document.getElementById('taskbar').classList.add('visible')
+    document.getElementById('boot').classList.add('booted')
+  }, 5000)
+
+  // Start button logic
+  const startBtn = document.getElementById('start-btn')
+  const startMenu = document.getElementById('start-menu')
+  let menuOpen = false
+
+  function toggleMenu(e) {
+    e.stopPropagation()
+    menuOpen = !menuOpen
+    if (menuOpen) {
+      startMenu.classList.add('visible')
+      startBtn.classList.add('clicked')
+    } else {
+      startMenu.classList.remove('visible')
+      startBtn.classList.remove('clicked')
+    }
+  }
+
+  startBtn.addEventListener('click', toggleMenu)
+
+  // Close menu when clicking outside
+  document.addEventListener('click', function(e) {
+    if (menuOpen && !startMenu.contains(e.target) && e.target !== startBtn && !startBtn.contains(e.target)) {
+      startMenu.classList.remove('visible')
+      startBtn.classList.remove('clicked')
+      menuOpen = false
+    }
+  })
+
+  // Find popup logic
+  const findItem = document.getElementById('find-item')
+  let windowCount = 0
+
+  function createFindPopup() {
+    startMenu.classList.remove('visible')
+    startBtn.classList.remove('clicked')
+    menuOpen = false
+    
+    const audio = new Audio('msgError.mp3')
+    audio.play()
+    
+    const popup = document.createElement('div')
+    popup.className = 'popup-window'
+    windowCount++
+    
+    const offset = (windowCount - 1) * 30
+    popup.style.transform = `translate(calc(-50% + ${offset}px), calc(-50% + ${offset}px))`
+    
+    popup.innerHTML = `
+      <div class="popup-titlebar">
+        <span>Finding</span>
+        <div class="popup-close">✕</div>
+      </div>
+      <div class="popup-body">
+        <img src="msgError.png" alt="Error" />
+        <p>Your dad went to buy Milk. And since you have no father, Windows 97 is now your father!</p>
+      </div>
+      <div class="popup-footer">
+        <button class="popup-btn">OK</button>
+      </div>
+    `
+    
+    document.getElementById('boot').appendChild(popup)
+    
+    const closeBtn = popup.querySelector('.popup-close')
+    const okBtn = popup.querySelector('.popup-btn')
+    
+    function closePopup() {
+      popup.remove()
+      windowCount--
+    }
+    
+    closeBtn.addEventListener('click', closePopup)
+    okBtn.addEventListener('click', closePopup)
+  }
+
+  findItem.addEventListener('click', createFindPopup)
+
+  // Shutdown popup logic
+  const shutdownItem = document.getElementById('shutdown-item')
+  const shutdownOverlay = document.getElementById('shutdown-overlay')
+  const shutdownClose = document.getElementById('shutdown-close')
+  const shutdownOk = document.getElementById('shutdown-ok')
+  const shutdownCancel = document.getElementById('shutdown-cancel')
+  const shutdownRadios = document.querySelectorAll('input[name="power"]')
+  const bootDiv = document.getElementById('boot')
+  const shutdownScreen = document.getElementById('shutdown-screen')
+
+  function openShutdownPopup(e) {
+    e.stopPropagation()
+    startMenu.classList.remove('visible')
+    startBtn.classList.remove('clicked')
+    menuOpen = false
+    shutdownOverlay.classList.add('visible')
+  }
+
+  function closeShutdownPopup() {
+    shutdownOverlay.classList.remove('visible')
+  }
+
+  shutdownItem.addEventListener('click', openShutdownPopup)
+  shutdownClose.addEventListener('click', closeShutdownPopup)
+  shutdownCancel.addEventListener('click', closeShutdownPopup)
+
+  shutdownOk.addEventListener('click', function() {
+    let selected = ''
+    shutdownRadios.forEach(radio => {
+      if (radio.checked) {
+        selected = radio.value
+      }
+    })
+    
+    closeShutdownPopup()
+    
+    if (selected === 'restart') {
+      // Refresh the page
+      location.reload()
+    }
+  })
+
+  // Close shutdown popup when clicking overlay
+  shutdownOverlay.addEventListener('click', function(e) {
+    if (e.target === shutdownOverlay) {
+      closeShutdownPopup()
+    }
+  })
+
+  // Check if shutdown_screen.png loads
+  const shutdownImg = new Image();
+  shutdownImg.onload = function() {
+    console.log('shutdown_screen.png loaded successfully');
+  };
+  shutdownImg.onerror = function() {
+    console.log('shutdown_screen.png failed to load - check if the file exists');
+    // Fallback: show black screen with text
+    const screen = document.getElementById('shutdown-screen');
+    screen.style.backgroundColor = '#000';
+    screen.innerHTML = '<div style="color:#fff;text-align:center;padding-top:40vh;font-size:24px;font-family:Arial;">Windows 97<br>Shutting down...</div>';
+  };
+  shutdownImg.src = 'shutdown_screen.png';
+
+// knosn.exe - Desktop button with bytebeat visualizer (FIXED)
+(function() {
+  // Check if already exists
+  if (document.getElementById('knosn-icon')) return;
+  
+  const boot = document.getElementById('boot');
+  if (!boot) {
+    console.error('Boot element not found!');
+    return;
+  }
+
+  // Create the icon
+  const knosnIcon = document.createElement('div');
+  knosnIcon.id = 'knosn-icon';
+  knosnIcon.style.cssText = `
+    position: absolute;
+    top: 180px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-family: 'CustomFont', Arial, sans-serif;
+    text-shadow: 1px 1px 2px #000;
+    cursor: pointer;
+    padding: 4px;
+    width: 70px;
+    text-align: center;
+    z-index: 1000;
+  `;
+
+  knosnIcon.innerHTML = `
+    <img src="pixel_logo.png" style="width:48px;height:48px;image-rendering:pixelated;margin-bottom:4px;" />
+    <span>knosn.exe</span>
+  `;
+
+  boot.appendChild(knosnIcon);
+
+  // Store state
+  let bytebeatInterval = null;
+  let flashInterval = null;
+  let isBytebeatActive = false;
+  let canvas = null;
+  let ctx = null;
+  let popupWindows = [];
+  let audioCtx = null;
+
+  // Bytebeat sound function - VIZNUT style iconic bytebeat
+  function playBytebeat() {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const bufferSize = 8192;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      
+      // Classic VIZNUT-style bytebeat - iconic chiptune sound
+      for (let i = 0; i < bufferSize; i++) {
+        const t = i / audioCtx.sampleRate;
+        // Classic bytebeat formula: (t*100)&(t*50) with variations
+        const val = ((Math.floor(t * 100) & Math.floor(t * 50)) ^ (Math.floor(t * 80) & Math.floor(t * 30))) % 256;
+        data[i] = (val / 128) - 1;
+      }
+      
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start();
+      source.stop(audioCtx.currentTime + 0.8);
+    } catch(e) {
+      console.log('Audio not available');
+    }
+  }
+
+  // Create bytebeat visualizer - FIXED z-index
+  function createBytebeatVisualizer() {
+    removeBytebeatVisualizer();
+    
+    canvas = document.createElement('canvas');
+    canvas.id = 'bytebeat-canvas';
+    canvas.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      z-index: 99999;
+      pointer-events: none;
+    `;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Insert before taskbar to keep taskbar visible
+    const taskbar = document.getElementById('taskbar');
+    if (taskbar) {
+      boot.insertBefore(canvas, taskbar);
+    } else {
+      boot.appendChild(canvas);
+    }
+    
+    ctx = canvas.getContext('2d');
+    isBytebeatActive = true;
+    
+    let time = 0;
+    let waveOffset = 0;
+    
+    function drawBytebeat() {
+      if (!isBytebeatActive || !canvas) return;
+      
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw multiple waveform lines for more iconic look
+      const colors = ['#00ff00', '#00ff44', '#44ff00', '#00ff88'];
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      for (let line = 0; line < 3; line++) {
+        ctx.strokeStyle = colors[line % colors.length];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const centerY = height / 2 + Math.sin(time + line) * 20;
+        const amplitude = height * 0.3 + Math.sin(time * 0.5 + line) * 20;
+        
+        for (let x = 0; x < width; x++) {
+          const t = time + (x / width) * 20 + line * 0.5;
+          // More complex bytebeat formula
+          const val = ((Math.floor(t * 100) & Math.floor(t * 50)) ^ (Math.floor(t * 80) & Math.floor(t * 30))) % 256;
+          const normalizedY = (val / 256) * amplitude * 2 - amplitude;
+          
+          if (x === 0) {
+            ctx.moveTo(x, centerY + normalizedY);
+          } else {
+            ctx.lineTo(x, centerY + normalizedY);
+          }
+        }
+        ctx.stroke();
+      }
+      
+      time += 0.05;
+      
+      if (isBytebeatActive) {
+        requestAnimationFrame(drawBytebeat);
+      }
+    }
+    
+    drawBytebeat();
+    
+    // Flash invert colors every 0.9 seconds
+    let flashState = false;
+    flashInterval = setInterval(() => {
+      if (!isBytebeatActive || !canvas) return;
+      flashState = !flashState;
+      canvas.style.filter = flashState ? 'invert(1)' : 'invert(0)';
+    }, 900);
+  }
+
+  // Remove bytebeat visualizer - FIXED to restore taskbar
+  function removeBytebeatVisualizer() {
+    isBytebeatActive = false;
+    if (flashInterval) {
+      clearInterval(flashInterval);
+      flashInterval = null;
+    }
+    if (canvas) {
+      canvas.remove();
+      canvas = null;
+      ctx = null;
+    }
+    // Close audio context
+    if (audioCtx) {
+      try {
+        audioCtx.close();
+      } catch(e) {}
+      audioCtx = null;
+    }
+    // Remove popups
+    popupWindows.forEach(p => {
+      if (p.parentNode) p.remove();
+    });
+    popupWindows = [];
+    
+    // Ensure taskbar is visible
+    const taskbar = document.getElementById('taskbar');
+    if (taskbar) {
+      taskbar.style.display = 'flex';
+      taskbar.classList.add('visible');
+    }
+  }
+
+  // Create knosn popup
+  function createKnosnPopup() {
+    playBytebeat();
+    createBytebeatVisualizer();
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup-window';
+    popup.style.cssText = `
+      position: absolute;
+      background: #c0c0c0;
+      border: 2px solid;
+      border-color: #ffffff #808080 #808080 #ffffff;
+      min-width: 350px;
+      max-width: 400px;
+      font-family: 'CustomFont', Arial, sans-serif;
+      z-index: 9999999;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    `;
+    
+    popup.innerHTML = `
+      <div class="popup-titlebar" style="background:linear-gradient(to right, #ff6600, #0088ff);padding:4px 6px;display:flex;justify-content:space-between;align-items:center;cursor:default;">
+        <span style="color:#fff;font-weight:bold;font-size:13px;text-shadow:1px 1px 1px rgba(0,0,0,0.3);">862</span>
+      </div>
+      <div class="popup-body" style="padding:16px 20px;display:flex;gap:16px;align-items:flex-start;">
+        <img src="msgError.png" alt="Error" style="width:40px;height:40px;flex-shrink:0;image-rendering:pixelated;" />
+        <p style="font-size:13px;color:#000;margin:0;line-height:1.4;">862828629</p>
+      </div>
+      <div class="popup-footer" style="padding:8px 12px;display:flex;justify-content:center;gap:8px;border-top:1px solid #808080;">
+        <button class="popup-btn" style="padding:4px 24px;background:#c0c0c0;border:2px solid;border-color:#ffffff #808080 #808080 #ffffff;cursor:pointer;font-family:'CustomFont',Arial,sans-serif;font-size:13px;color:#000;min-width:60px;">484666</button>
+      </div>
+    `;
+    
+    boot.appendChild(popup);
+    popupWindows.push(popup);
+    
+    // Button does nothing on click
+    const btn = popup.querySelector('.popup-btn');
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  }
+
+  // Click handler for knosn.exe
+  knosnIcon.addEventListener('click', function(e) {
+    e.stopPropagation();
+    createKnosnPopup();
+  });
+
+  // INTERCEPT SHUTDOWN - Remove the shutdown button instantly
+  const shutdownItem = document.getElementById('shutdown-item');
+  if (shutdownItem) {
+    shutdownItem.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      // Remove bytebeat visualizer first
+      removeBytebeatVisualizer();
+      
+      // DELETE the shutdown button instantly
+      shutdownItem.remove();
+      
+      console.log('💀 Shutdown button deleted!');
+    }, true);
+  }
+
+  console.log('✅ knosn.exe created! Click it for iconic bytebeat!');
+  console.log('💀 Shutdown button will be deleted when clicked.');
+})();
+
+  // Menu items do nothing on click (except Find and Shutdown)
+  document.querySelectorAll('.menu-item:not(#find-item):not(#shutdown-item)').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation()
+    })
+  })
+
+</script>

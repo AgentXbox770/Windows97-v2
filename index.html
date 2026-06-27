@@ -1,0 +1,1137 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Windows 97</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<link rel="icon" type="image/x-icon" href="logo.ico" />
+<style>
+  @font-face {
+    font-family: 'CustomFont';
+    src: url('font.ttf') format('truetype');
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  html, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'CustomFont', Arial, sans-serif;
+  }
+
+  #boot {
+    background-color: #000;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: background-image 0.5s;
+  }
+
+  #boot.booted {
+    background-image: url('wallpaper.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  #loader {
+    position: absolute;
+    height: 15px;
+    top: calc(50% + 100px);
+    left: 0;
+    right: 0;
+    background-image: url('loadingBar.gif');
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  #canvas {
+    margin: auto;
+    position: absolute;
+    height: 230px;
+    width: 230px;
+    top: calc(50% - 150px);
+    left: 1%;
+    right: 1%;
+  }
+
+  #taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    display: none;
+    align-items: center;
+    padding: 2px 0 2px 4px;
+    z-index: 9999;
+    gap: 2px;
+  }
+
+  #taskbar.visible {
+    display: flex;
+  }
+
+  #start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 12px 2px 6px;
+    height: 28px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  #start-btn:active, #start-btn.clicked {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  #start-btn img {
+    width: 20px;
+    height: 20px;
+  }
+
+  #boot-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 2;
+  }
+
+  #boot-screen.hidden {
+    display: none;
+  }
+
+  #start-menu {
+    position: absolute;
+    bottom: 38px;
+    left: 4px;
+    width: 180px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: none;
+    z-index: 10000;
+    font-family: 'CustomFont', Arial, sans-serif;
+    padding: 2px;
+  }
+
+  #start-menu.visible {
+    display: block;
+  }
+
+  .menu-left {
+    background: #ff6600;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .menu-left span {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+  }
+
+  .menu-items {
+    padding: 2px 0;
+    position: relative;
+  }
+
+  .menu-item {
+    padding: 4px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #000;
+    position: relative;
+  }
+
+  .menu-item:hover {
+    background: #ff8c00;
+    color: #000;
+  }
+
+  .menu-item img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .menu-divider {
+    height: 2px;
+    background: #808080;
+    margin: 2px 8px;
+    border-bottom: 1px solid #ffffff;
+  }
+
+  .submenu {
+    position: absolute;
+    left: 100%;
+    top: -2px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 2px;
+    display: none;
+    min-width: 150px;
+    z-index: 10001;
+    font-family: 'CustomFont', Arial, sans-serif;
+  }
+
+  .submenu.visible {
+    display: block;
+  }
+
+  .submenu .menu-item {
+    white-space: nowrap;
+  }
+
+  .popup-window {
+    position: absolute;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 350px;
+    max-width: 400px;
+    font-family: 'CustomFont', Arial, sans-serif;
+    z-index: 99999;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .popup-titlebar {
+    background: linear-gradient(to right, #ff6600, #0088ff);
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .popup-titlebar span {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .popup-titlebar span img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+  }
+
+  .popup-titlebar-buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .popup-titlebar-btn {
+    width: 18px;
+    height: 18px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .popup-titlebar-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .popup-titlebar-btn.close {
+    font-size: 12px;
+  }
+
+  .popup-body {
+    padding: 16px 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex: 1;
+  }
+
+  .popup-body iframe {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #808080;
+    background: #fff;
+  }
+
+  .popup-body img {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+  }
+
+  .popup-body p {
+    font-size: 13px;
+    color: #000;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .popup-footer {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #808080;
+  }
+
+  .popup-btn {
+    padding: 4px 24px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    color: #000;
+    min-width: 60px;
+  }
+
+  .popup-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .shutdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99998;
+  }
+
+  .shutdown-overlay.visible {
+    display: flex;
+  }
+
+  .shutdown-window {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 320px;
+    font-family: 'CustomFont', Arial, sans-serif;
+  }
+
+  .shutdown-titlebar {
+    background: linear-gradient(to right, #ff6600, #0088ff);
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default;
+  }
+
+  .shutdown-titlebar span {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+  }
+
+  .shutdown-close {
+    width: 18px;
+    height: 18px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .shutdown-close:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .shutdown-body {
+    padding: 20px 24px;
+  }
+
+  .shutdown-body img {
+    display: block;
+    margin: 0 auto 12px auto;
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+  }
+
+  .shutdown-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .shutdown-option input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .shutdown-option input[type="radio"]:checked {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .shutdown-option input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 6px;
+    height: 6px;
+    background: #000;
+    border-radius: 50%;
+  }
+
+  .shutdown-option input[type="radio"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .shutdown-option label {
+    font-size: 13px;
+    color: #000;
+    cursor: pointer;
+  }
+
+  .shutdown-option input[type="radio"]:disabled + label {
+    color: #666;
+    cursor: not-allowed;
+  }
+
+  .shutdown-footer {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #808080;
+  }
+
+  .shutdown-btn {
+    padding: 4px 24px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 13px;
+    color: #000;
+    min-width: 60px;
+  }
+
+  .shutdown-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  #shutdown-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    background-image: url('shutdown_screen.png');
+    background-size: cover;
+    background-position: center;
+    display: none;
+    z-index: 999999;
+  }
+
+  #shutdown-screen.visible {
+    display: block;
+  }
+
+  .taskbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    height: 28px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-family: 'CustomFont', Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+    min-width: 100px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .taskbar-btn.active {
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #b0b0b0;
+  }
+
+  .taskbar-btn img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+  }
+
+  .taskbar-spacer {
+    flex: 1;
+  }
+
+  .resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    z-index: 99999;
+  }
+
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 6px;
+    height: 6px;
+    background: #808080;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+
+  .vpc-window {
+    position: absolute;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 640px;
+    min-height: 480px;
+    width: 800px;
+    height: 600px;
+    font-family: 'CustomFont', Arial, sans-serif;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+
+<div id="boot">
+  <div id="boot-screen">
+    <canvas id="canvas" width="230" height="230"></canvas>
+    <div id="loader"></div>
+  </div>
+
+  <div id="taskbar">
+    <div id="start-btn">
+      <img src="pixel_logo.png" alt="Start" />
+      Start
+    </div>
+    <div id="start-menu">
+      <div class="menu-left">
+        <span>Windows 97</span>
+      </div>
+      <div class="menu-items">
+        <div class="menu-item" id="programs-item">
+          <img src="programsStartMenu.png" alt="Programs" />
+          Programs
+          <span class="submenu-arrow" style="margin-left:auto;font-size:10px;color:#000;">▶</span>
+          <div class="submenu" id="programs-submenu">
+            <div class="menu-item" id="vpc-item">
+              <img src="virtualPc.png" alt="Virtual PC" style="width:24px;height:24px;image-rendering:pixelated;" />
+              Virtual PC
+            </div>
+          </div>
+        </div>
+        <div class="menu-item">
+          <img src="help.png" alt="Help" />
+          Help
+        </div>
+        <div class="menu-item" id="find-item">
+          <img src="find.png" alt="Find" />
+          Find
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" id="shutdown-item">
+          <img src="shutdown.png" alt="Shut down" />
+          Shut down...
+        </div>
+      </div>
+    </div>
+    <div id="taskbar-buttons" style="display:flex;gap:2px;flex:1;overflow:hidden;"></div>
+    <div class="taskbar-spacer"></div>
+    <div id="clock" style="padding:0 12px;font-size:12px;font-family:'CustomFont',Arial,sans-serif;color:#000;border-left:2px solid #808080;height:22px;display:flex;align-items:center;"></div>
+  </div>
+
+  <div class="shutdown-overlay" id="shutdown-overlay">
+    <div class="shutdown-window">
+      <div class="shutdown-titlebar">
+        <span>Power Options</span>
+        <div class="shutdown-close" id="shutdown-close">✕</div>
+      </div>
+      <div class="shutdown-body">
+        <img src="shutdown.png" alt="Shutdown" />
+        <div class="shutdown-option">
+          <input type="radio" name="power" id="restart-opt" value="restart" checked />
+          <label for="restart-opt">Restart</label>
+        </div>
+        <div class="shutdown-option">
+          <input type="radio" name="power" id="standby-opt" value="standby" disabled />
+          <label for="standby-opt">Standby</label>
+        </div>
+      </div>
+      <div class="shutdown-footer">
+        <button class="shutdown-btn" id="shutdown-ok">OK</button>
+        <button class="shutdown-btn" id="shutdown-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shutdown-screen"></div>
+</div>
+
+<script>
+  const img = new Image()
+  const cnv = document.querySelector("#canvas")
+  const ctx = cnv.getContext("2d")
+  const fx = [
+    { value: 0, amp: 10, inc: 0.01, offset: 0 },
+    { value: 0, amp: 10, inc: 0, offset: 0 },
+  ]
+  img.onload = go
+  img.src = "logo.png"
+
+  function siny(posx, posy) {
+    const oldvalue = []
+    let i, j
+    const l = fx.length
+    const w = img.width
+    let prov = 0
+    for (j = 0; j < l; j++) oldvalue[j] = fx[j].value
+    for (i = 0; i < w; i++) {
+      prov = 0
+      for (j = 0; j < l; j++) prov += Math.sin(fx[j].value) * fx[j].amp
+      ctx.translate(i + posx, prov + posy)
+      ctx.drawImage(img, i, 0, 1, img.height, 0, 0, 1, img.height)
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      for (j = 0; j < l; j++) fx[j].value += fx[j].inc
+    }
+    for (j = 0; j < l; j++) fx[j].value = oldvalue[j] + fx[j].offset
+  }
+
+  function go() {
+    if (fx[1].inc < 1) fx[1].inc += 0.001
+    if (fx[0].amp < 10) {
+      fx[0].amp += 0.1
+      fx[1].amp += 0.1
+    }
+    if (fx[0].offset > -0.05) {
+      fx[0].offset -= 0.01
+      fx[1].offset += 0.01
+    }
+    ctx.fillStyle = "#000"
+    ctx.fillRect(0, 0, cnv.width, cnv.height)
+    siny(0, 20)
+    requestAnimationFrame(go)
+  }
+
+  setTimeout(() => {
+    document.getElementById('boot-screen').classList.add('hidden')
+    document.getElementById('taskbar').classList.add('visible')
+    document.getElementById('boot').classList.add('booted')
+    
+    const startupAudio = new Audio('startup.mp3');
+    startupAudio.play();
+  }, 3000)
+
+  const startBtn = document.getElementById('start-btn')
+  const startMenu = document.getElementById('start-menu')
+  let menuOpen = false
+
+  function toggleMenu(e) {
+    e.stopPropagation()
+    menuOpen = !menuOpen
+    if (menuOpen) {
+      startMenu.classList.add('visible')
+      startBtn.classList.add('clicked')
+    } else {
+      startMenu.classList.remove('visible')
+      startBtn.classList.remove('clicked')
+    }
+  }
+
+  startBtn.addEventListener('click', toggleMenu)
+
+  document.addEventListener('click', function(e) {
+    if (menuOpen && !startMenu.contains(e.target) && e.target !== startBtn && !startBtn.contains(e.target)) {
+      startMenu.classList.remove('visible')
+      startBtn.classList.remove('clicked')
+      menuOpen = false
+    }
+  })
+
+  const programsItem = document.getElementById('programs-item')
+  const submenu = document.getElementById('programs-submenu')
+
+  programsItem.addEventListener('mouseenter', function() {
+    submenu.classList.add('visible')
+  })
+
+  programsItem.addEventListener('mouseleave', function() {
+    setTimeout(() => {
+      if (!submenu.matches(':hover')) {
+        submenu.classList.remove('visible')
+      }
+    }, 200)
+  })
+
+  submenu.addEventListener('mouseenter', function() {
+    submenu.classList.add('visible')
+  })
+
+  submenu.addEventListener('mouseleave', function() {
+    submenu.classList.remove('visible')
+  })
+
+  const findItem = document.getElementById('find-item')
+  let windowCount = 0
+
+  function createFindPopup() {
+    startMenu.classList.remove('visible')
+    startBtn.classList.remove('clicked')
+    menuOpen = false
+    
+    const audio = new Audio('msgError.mp3')
+    audio.play()
+    
+    const popup = document.createElement('div')
+    popup.className = 'popup-window'
+    windowCount++
+    
+    const offset = (windowCount - 1) * 30
+    popup.style.transform = `translate(calc(-50% + ${offset}px), calc(-50% + ${offset}px))`
+    
+    popup.innerHTML = `
+      <div class="popup-titlebar">
+        <span>Finding</span>
+        <div class="popup-close">✕</div>
+      </div>
+      <div class="popup-body">
+        <img src="msgError.png" alt="Error" />
+        <p>Your dad went to buy Milk. And since you have no father, Windows 97 is now your father!</p>
+      </div>
+      <div class="popup-footer">
+        <button class="popup-btn">OK</button>
+      </div>
+    `
+    
+    document.getElementById('boot').appendChild(popup)
+    
+    const closeBtn = popup.querySelector('.popup-close')
+    const okBtn = popup.querySelector('.popup-btn')
+    
+    function closePopup() {
+      popup.remove()
+      windowCount--
+    }
+    
+    closeBtn.addEventListener('click', closePopup)
+    okBtn.addEventListener('click', closePopup)
+  }
+
+  findItem.addEventListener('click', createFindPopup)
+
+  // Virtual PC logic
+  const vpcItem = document.getElementById('vpc-item')
+  let vpcWindows = []
+  let vpcCounter = 0
+  let activeWindowId = null
+
+  function createVPCWindow() {
+    startMenu.classList.remove('visible')
+    startBtn.classList.remove('clicked')
+    menuOpen = false
+
+    vpcCounter++
+    const windowId = 'vpc-' + vpcCounter
+    const zIndex = 99990 + vpcCounter
+
+    // Calculate position - cascade windows
+    const baseOffset = 30
+    const index = vpcWindows.length
+    const offsetX = (index * baseOffset) % 200
+    const offsetY = Math.floor(index * baseOffset / 200) * baseOffset + 50
+
+    const win = document.createElement('div')
+    win.className = 'vpc-window'
+    win.id = windowId
+    win.style.zIndex = zIndex
+    win.style.top = (50 + offsetY) + 'px'
+    win.style.left = (50 + offsetX) + 'px'
+    win.dataset.windowId = windowId
+    win.dataset.minimized = 'false'
+
+    win.innerHTML = `
+      <div class="popup-titlebar" style="flex-shrink:0;cursor:move;">
+        <span>
+          <img src="virtualPc.png" alt="Virtual PC" />
+          Virtual PC
+        </span>
+        <div class="popup-titlebar-buttons">
+          <div class="popup-titlebar-btn minimize" data-window="${windowId}">─</div>
+          <div class="popup-titlebar-btn maximize" data-window="${windowId}">☐</div>
+          <div class="popup-titlebar-btn close" data-window="${windowId}">✕</div>
+        </div>
+      </div>
+      <div class="popup-body" style="flex:1;padding:4px;display:flex;overflow:hidden;">
+        <iframe src="index.html" style="width:100%;height:100%;border:1px solid #808080;background:#fff;"></iframe>
+      </div>
+      <div class="resize-handle"></div>
+    `
+
+    document.getElementById('boot').appendChild(win)
+
+    // Create taskbar button
+    const taskbarBtn = document.createElement('div')
+    taskbarBtn.className = 'taskbar-btn active'
+    taskbarBtn.dataset.window = windowId
+    taskbarBtn.innerHTML = `
+      <img src="virtualPc.png" alt="Virtual PC" />
+      Virtual PC
+    `
+    document.getElementById('taskbar-buttons').appendChild(taskbarBtn)
+
+    const windowData = {
+      id: windowId,
+      element: win,
+      taskbarBtn: taskbarBtn,
+      minimized: false,
+      maximized: false,
+      prevWidth: 800,
+      prevHeight: 600,
+      prevTop: 50 + offsetY,
+      prevLeft: 50 + offsetX
+    }
+    vpcWindows.push(windowData)
+
+    // Set as active
+    setActiveWindow(windowId)
+
+    // Close button
+    win.querySelector('.close').addEventListener('click', function(e) {
+      e.stopPropagation()
+      closeVPCWindow(windowId)
+    })
+
+    // Minimize button
+    win.querySelector('.minimize').addEventListener('click', function(e) {
+      e.stopPropagation()
+      toggleMinimize(windowId)
+    })
+
+    // Maximize button
+    win.querySelector('.maximize').addEventListener('click', function(e) {
+      e.stopPropagation()
+      toggleMaximize(windowId)
+    })
+
+    // Taskbar button click
+    taskbarBtn.addEventListener('click', function(e) {
+      e.stopPropagation()
+      const data = vpcWindows.find(w => w.id === windowId)
+      if (data) {
+        if (data.minimized) {
+          restoreWindow(windowId)
+        } else {
+          toggleMinimize(windowId)
+        }
+      }
+    })
+
+    // Click to bring to front
+    win.addEventListener('mousedown', function() {
+      bringToFront(windowId)
+    })
+
+    // Resize functionality
+    let isResizing = false
+    let startX, startY, startWidth, startHeight
+
+    const resizeHandle = win.querySelector('.resize-handle')
+    resizeHandle.addEventListener('mousedown', function(e) {
+      e.preventDefault()
+      e.stopPropagation()
+      isResizing = true
+      startX = e.clientX
+      startY = e.clientY
+      startWidth = win.offsetWidth
+      startHeight = win.offsetHeight
+      document.body.style.cursor = 'nwse-resize'
+    })
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isResizing) return
+      const dx = e.clientX - startX
+      const dy = e.clientY - startY
+      win.style.width = Math.max(400, startWidth + dx) + 'px'
+      win.style.height = Math.max(300, startHeight + dy) + 'px'
+    })
+
+    document.addEventListener('mouseup', function() {
+      if (isResizing) {
+        isResizing = false
+        document.body.style.cursor = ''
+      }
+    })
+
+    // Drag functionality
+    let isDragging = false
+    let dragStartX, dragStartY, dragStartLeft, dragStartTop
+
+    const titlebar = win.querySelector('.popup-titlebar')
+    titlebar.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.popup-titlebar-buttons')) return
+      isDragging = true
+      dragStartX = e.clientX
+      dragStartY = e.clientY
+      dragStartLeft = win.offsetLeft
+      dragStartTop = win.offsetTop
+      win.style.cursor = 'move'
+    })
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return
+      const dx = e.clientX - dragStartX
+      const dy = e.clientY - dragStartY
+      win.style.left = (dragStartLeft + dx) + 'px'
+      win.style.top = (dragStartTop + dy) + 'px'
+    })
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false
+        win.style.cursor = ''
+      }
+    })
+
+    updateClock()
+    setInterval(updateClock, 1000)
+  }
+
+  function setActiveWindow(windowId) {
+    // Remove active from all taskbar buttons
+    vpcWindows.forEach(w => {
+      w.taskbarBtn.classList.remove('active')
+    })
+    // Set active on the selected window
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (data && !data.minimized) {
+      data.taskbarBtn.classList.add('active')
+      activeWindowId = windowId
+    }
+  }
+
+  function closeVPCWindow(windowId) {
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (data) {
+      data.element.remove()
+      data.taskbarBtn.remove()
+      vpcWindows = vpcWindows.filter(w => w.id !== windowId)
+      if (activeWindowId === windowId) {
+        activeWindowId = null
+        if (vpcWindows.length > 0) {
+          const lastWindow = vpcWindows[vpcWindows.length - 1]
+          if (!lastWindow.minimized) {
+            setActiveWindow(lastWindow.id)
+          }
+        }
+      }
+    }
+  }
+
+  function toggleMinimize(windowId) {
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (!data) return
+    if (data.minimized) {
+      restoreWindow(windowId)
+    } else {
+      data.element.style.display = 'none'
+      data.minimized = true
+      data.taskbarBtn.classList.remove('active')
+      if (activeWindowId === windowId) {
+        activeWindowId = null
+        // Find another window to activate
+        const visibleWindow = vpcWindows.find(w => !w.minimized)
+        if (visibleWindow) {
+          setActiveWindow(visibleWindow.id)
+        }
+      }
+    }
+  }
+
+  function restoreWindow(windowId) {
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (!data) return
+    data.element.style.display = 'flex'
+    data.minimized = false
+    bringToFront(windowId)
+    setActiveWindow(windowId)
+  }
+
+  function toggleMaximize(windowId) {
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (!data) return
+    if (data.maximized) {
+      data.element.style.width = data.prevWidth + 'px'
+      data.element.style.height = data.prevHeight + 'px'
+      data.element.style.top = data.prevTop + 'px'
+      data.element.style.left = data.prevLeft + 'px'
+      data.maximized = false
+    } else {
+      data.prevWidth = data.element.offsetWidth
+      data.prevHeight = data.element.offsetHeight
+      data.prevTop = data.element.offsetTop
+      data.prevLeft = data.element.offsetLeft
+      data.element.style.width = '100vw'
+      data.element.style.height = 'calc(100vh - 38px)'
+      data.element.style.top = '0'
+      data.element.style.left = '0'
+      data.maximized = true
+    }
+  }
+
+  function bringToFront(windowId) {
+    const data = vpcWindows.find(w => w.id === windowId)
+    if (!data) return
+    const maxZ = Math.max(...vpcWindows.map(w => parseInt(w.element.style.zIndex) || 0))
+    data.element.style.zIndex = maxZ + 1
+    if (!data.minimized) {
+      setActiveWindow(windowId)
+    }
+  }
+
+  vpcItem.addEventListener('click', createVPCWindow)
+
+  // Shutdown popup logic
+  const shutdownItem = document.getElementById('shutdown-item')
+  const shutdownOverlay = document.getElementById('shutdown-overlay')
+  const shutdownClose = document.getElementById('shutdown-close')
+  const shutdownOk = document.getElementById('shutdown-ok')
+  const shutdownCancel = document.getElementById('shutdown-cancel')
+  const shutdownRadios = document.querySelectorAll('input[name="power"]')
+  const bootDiv = document.getElementById('boot')
+  const shutdownScreen = document.getElementById('shutdown-screen')
+
+  function openShutdownPopup(e) {
+    e.stopPropagation()
+    startMenu.classList.remove('visible')
+    startBtn.classList.remove('clicked')
+    menuOpen = false
+    shutdownOverlay.classList.add('visible')
+  }
+
+  function closeShutdownPopup() {
+    shutdownOverlay.classList.remove('visible')
+  }
+
+  shutdownItem.addEventListener('click', openShutdownPopup)
+  shutdownClose.addEventListener('click', closeShutdownPopup)
+  shutdownCancel.addEventListener('click', closeShutdownPopup)
+
+  shutdownOk.addEventListener('click', function() {
+    let selected = ''
+    shutdownRadios.forEach(radio => {
+      if (radio.checked) {
+        selected = radio.value
+      }
+    })
+    
+    closeShutdownPopup()
+    
+    if (selected === 'restart') {
+      location.reload()
+    }
+  })
+
+  shutdownOverlay.addEventListener('click', function(e) {
+    if (e.target === shutdownOverlay) {
+      closeShutdownPopup()
+    }
+  })
+
+  function updateClock() {
+    const now = new Date()
+    const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+    document.getElementById('clock').textContent = time
+  }
+
+  document.querySelectorAll('.menu-item:not(#find-item):not(#shutdown-item):not(#programs-item)').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation()
+    })
+  })
+</script>

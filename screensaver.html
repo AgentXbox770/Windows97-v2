@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <style>
+    /* reset & fullscreen black canvas */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: black;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: black;
+      image-rendering: crisp-edges; /* retro feel */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pipeCanvas"></canvas>
+  <script>
+    (function() {
+      const canvas = document.getElementById('pipeCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // ----- dimensions -----
+      let width, height;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        // reinitialize pipes when size changes (clear & restart)
+        initPipes();
+      }
+
+      // ----- classic Win95/98 pipe colors (16-color palette) -----
+      const COLORS = [
+        '#000000', // 0 black (unused)
+        '#800000', // 1 dark red
+        '#008000', // 2 dark green
+        '#808000', // 3 olive
+        '#000080', // 4 dark blue
+        '#800080', // 5 purple
+        '#008080', // 6 teal
+        '#C0C0C0', // 7 silver
+        '#808080', // 8 gray
+        '#FF0000', // 9 red
+        '#00FF00', // 10 lime
+        '#FFFF00', // 11 yellow
+        '#0000FF', // 12 blue
+        '#FF00FF', // 13 magenta
+        '#00FFFF', // 14 cyan
+        '#FFFFFF'  // 15 white
+      ];
+
+      // pick a random color from the palette (skip black & gray/silver if you like, but we keep all for variety)
+      function randomColor() {
+        // classic pipes often use bright colors: pick from index 9..15 + some others
+        // but we include all except black for more variety
+        const idx = Math.floor(Math.random() * 15) + 1; // 1..15
+        return COLORS[idx];
+      }
+
+      // ----- pipe segment -----
+      class PipeSegment {
+        constructor(x, y, direction, color) {
+          this.x = x;
+          this.y = y;
+          this.direction = direction; // 0=up, 1=right, 2=down, 3=left
+          this.color = color;
+          this.length = 0;      // remaining length to draw in current segment
+          this.maxLength = 0;   // will be set when segment is created
+        }
+
+        // advance the pipe: move one step in current direction, decrease length
+        advance() {
+          if (this.length <= 0) return false;
+          this.length--;
+          // move one pixel in direction
+          switch (this.direction) {
+            case 0: this.y--; break;
+            case 1: this.x++; break;
+            case 2: this.y++; break;
+            case 3: this.x--; break;
+          }
+          return true;
+        }
+
+        // check if segment is finished (length <= 0)
+        isFinished() {
+          return this.length <= 0;
+        }
+      }
+
+      // ----- pipe system -----
+      let pipes = [];
+      const SEGMENT_LENGTH_MIN = 30;
+      const SEGMENT_LENGTH_MAX = 80;
+      const PIPE_WIDTH = 8;      // thickness of the pipe (in pixels)
+      const TURN_CHANCE = 0.18;  // probability of turning at each step
+      const MAX_PIPES = 80;      // performance / visual density
+
+      // directions: 0=up, 1=right, 2=down, 3=left
+      const DX = [0, 1, 0, -1];
+      const DY = [-1, 0, 1, 0];
+
+      // create a new pipe starting from a random edge or position
+      function createPipe() {
+        // pick a random starting position on the edge (or slightly inside)
+        let x, y, dir;
+        const edge = Math.floor(Math.random() * 4);
+        const margin = 20;
+        switch (edge) {
+          case 0: // top
+            x = Math.random() * width;
+            y = margin;
+            dir = 2; // down
+            break;
+          case 1: // right
+            x = width - margin;
+            y = Math.random() * height;
+            dir = 3; // left
+            break;
+          case 2: // bottom
+            x = Math.random() * width;
+            y = height - margin;
+            dir = 0; // up
+            break;
+          case 3: // left
+            x = margin;
+            y = Math.random() * height;
+            dir = 1; // right
+            break;
+        }
+        // clamp to canvas
+        x = Math.min(Math.max(x, 0), width);
+        y = Math.min(Math.max(y, 0), height);
+
+        const color = randomColor();
+        const maxLength = Math.floor(Math.random() * (SEGMENT_LENGTH_MAX - SEGMENT_LENGTH_MIN + 1)) + SEGMENT_LENGTH_MIN;
+        const seg = new PipeSegment(x, y, dir, color);
+        seg.maxLength = maxLength;
+        seg.length = maxLength;
+        return seg;
+      }
+
+      // add a new pipe if under limit
+      function addPipeIfNeeded() {
+        if (pipes.length < MAX_PIPES && Math.random() < 0.3) {
+          pipes.push(createPipe());
+        }
+      }
+
+      // initialize / reset pipes
+      function initPipes() {
+        pipes = [];
+        // start with a few pipes (15-25)
+        const count = Math.floor(Math.random() * 20) + 15;
+        for (let i = 0; i < count; i++) {
+          pipes.push(createPipe());
+        }
+      }
+
+      // ----- update all pipes (move, turn, grow) -----
+      function updatePipes() {
+        // first, advance all segments and collect finished ones
+        const finishedIndices = [];
+        for (let i = 0; i < pipes.length; i++) {
+          const seg = pipes[i];
+          const moved = seg.advance();
+          if (!moved || seg.isFinished()) {
+            finishedIndices.push(i);
+          }
+        }
+
+        // remove finished segments (from end to start)
+        for (let i = finishedIndices.length - 1; i >= 0; i--) {
+          const idx = finishedIndices[i];
+          pipes.splice(idx, 1);
+        }
+
+        // add new pipe occasionally
+        addPipeIfNeeded();
+
+        // now for each pipe segment, decide if it should turn (at the end of its length we create a new segment)
+        // but we handle turning during advance: when a segment finishes, we spawn a new one.
+        // we already removed finished segments, now we add new segments at the last position of each pipe
+        // but we need to know the last position of each pipe.
+        // we'll iterate over pipes and if they are "active" (length > 0) we might turn after a while?
+        // actually we want to turn when a segment ends, but we removed it. 
+        // Better: each pipe is a single segment. We'll let them grow by adding new segments when they end.
+        // So we reconstruct: we'll keep a list of pipes, each pipe is a segment.
+        // When a segment finishes, we spawn a new segment at its last position with a new direction (maybe turn)
+        // and continue.
+        // But we removed finished segments. So we need to add new segments at the position where they ended.
+        // We'll store the "last position" before removal.
+
+        // We'll use a different approach: instead of removing and adding, we'll manage segments inside pipes.
+        // But for simplicity, we treat each pipe as a single segment that when finished, we create a new one
+        // at the same position with a new direction.
+        // But we lost the position of finished segments. Let's store them.
+        // We'll rework: keep a list of pipes, each pipe is an object { segments: [] } but that's more complex.
+        // Simpler: each pipe is a segment, and when it finishes, we create a new pipe at that exact position.
+        // We'll store the last position in the segment before it's removed.
+
+        // Let's capture the end positions of finished pipes before removing.
+        // We'll store them in a temporary array.
+        const newPipes = [];
+        for (let i = pipes.length - 1; i >= 0; i--) {
+          const seg = pipes[i];
+          if (seg.isFinished()) {
+            // capture end position (the segment already moved to its final position)
+            const endX = seg.x;
+            const endY = seg.y;
+            // determine if we turn: random chance
+            let newDir = seg.direction;
+            // turn left or right? 50% chance
+            if (Math.random() < TURN_CHANCE) {
+              // turn left or right (add or subtract 1 mod 4)
+              const turn = Math.random() < 0.5 ? 1 : 3; // 1 = right turn, 3 = left turn (mod 4)
+              newDir = (seg.direction + turn) % 4;
+            }
+            // also maybe reverse? no, classic pipes don't reverse.
+            // create new pipe segment
+            const color = randomColor();
+            const maxLength = Math.floor(Math.random() * (SEGMENT_LENGTH_MAX - SEGMENT_LENGTH_MIN + 1)) + SEGMENT_LENGTH_MIN;
+            const newSeg = new PipeSegment(endX, endY, newDir, color);
+            newSeg.maxLength = maxLength;
+            newSeg.length = maxLength;
+            newPipes.push(newSeg);
+            // remove current segment
+            pipes.splice(i, 1);
+          }
+        }
+        // add new pipes from finished ones
+        for (const p of newPipes) {
+          if (p.x >= 0 && p.x <= width && p.y >= 0 && p.y <= height) {
+            pipes.push(p);
+          }
+        }
+
+        // also add a random new pipe from edge
+        addPipeIfNeeded();
+
+        // clamp pipes to canvas (if they go out, we remove them)
+        for (let i = pipes.length - 1; i >= 0; i--) {
+          const seg = pipes[i];
+          if (seg.x < 0 || seg.x > width || seg.y < 0 || seg.y > height) {
+            pipes.splice(i, 1);
+          }
+        }
+
+        // ensure we don't have too many pipes
+        while (pipes.length > MAX_PIPES) {
+          pipes.pop();
+        }
+      }
+
+      // ----- draw all pipes (retro 3D look) -----
+      function drawPipes() {
+        ctx.clearRect(0, 0, width, height);
+        // draw each pipe segment as a thick line with highlight/shadow
+        for (const seg of pipes) {
+          const x = seg.x;
+          const y = seg.y;
+          const color = seg.color;
+          const dir = seg.direction;
+
+          // we draw a small rectangle with 3D bevel effect
+          const half = Math.floor(PIPE_WIDTH / 2);
+          const x1 = x - half;
+          const y1 = y - half;
+          const x2 = x + half;
+          const y2 = y + half;
+
+          // main color
+          ctx.fillStyle = color;
+          ctx.fillRect(x1, y1, PIPE_WIDTH, PIPE_WIDTH);
+
+          // highlight (top-left) - lighter version
+          ctx.fillStyle = lightenColor(color, 40);
+          ctx.fillRect(x1, y1, PIPE_WIDTH, 2);
+          ctx.fillRect(x1, y1, 2, PIPE_WIDTH);
+
+          // shadow (bottom-right) - darker version
+          ctx.fillStyle = darkenColor(color, 40);
+          ctx.fillRect(x2 - 2, y1, 2, PIPE_WIDTH);
+          ctx.fillRect(x1, y2 - 2, PIPE_WIDTH, 2);
+
+          // optional: inner line for more retro feel
+          ctx.fillStyle = color;
+          ctx.fillRect(x1 + 2, y1 + 2, PIPE_WIDTH - 4, PIPE_WIDTH - 4);
+        }
+      }
+
+      // helper: lighten a hex color by amount (simple)
+      function lightenColor(hex, amt) {
+        let r = parseInt(hex.slice(1,3), 16);
+        let g = parseInt(hex.slice(3,5), 16);
+        let b = parseInt(hex.slice(5,7), 16);
+        r = Math.min(255, r + amt);
+        g = Math.min(255, g + amt);
+        b = Math.min(255, b + amt);
+        return `rgb(${r},${g},${b})`;
+      }
+
+      function darkenColor(hex, amt) {
+        let r = parseInt(hex.slice(1,3), 16);
+        let g = parseInt(hex.slice(3,5), 16);
+        let b = parseInt(hex.slice(5,7), 16);
+        r = Math.max(0, r - amt);
+        g = Math.max(0, g - amt);
+        b = Math.max(0, b - amt);
+        return `rgb(${r},${g},${b})`;
+      }
+
+      // ----- animation loop -----
+      function animate() {
+        updatePipes();
+        drawPipes();
+        requestAnimationFrame(animate);
+      }
+
+      // ----- start -----
+      window.addEventListener('resize', resize);
+      resize();
+      animate();
+
+      // optional: click to add a burst of pipes
+      canvas.addEventListener('click', (e) => {
+        for (let i = 0; i < 5; i++) {
+          const p = createPipe();
+          // place near mouse
+          const rect = canvas.getBoundingClientRect();
+          const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+          const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+          p.x = Math.min(Math.max(mx + (Math.random() - 0.5) * 100, 0), width);
+          p.y = Math.min(Math.max(my + (Math.random() - 0.5) * 100, 0), height);
+          p.direction = Math.floor(Math.random() * 4);
+          p.length = p.maxLength;
+          pipes.push(p);
+        }
+        // limit
+        while (pipes.length > MAX_PIPES * 1.5) {
+          pipes.shift();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
